@@ -30,11 +30,9 @@ let Global = {
         },
 
         ROLES : {
-                sAdmin: 'sAdmin',
-                Admin: 'Admin',
-                Secretaire: 'Secretaire',
-                Invite: 'Invité',
-                Client: 'Client'
+                admin: 'admin',
+                pointer:'pointer'
+
 
         }
 }

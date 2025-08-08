@@ -224,3 +224,82 @@ exports.signup = async (req, res, next) => {
     });
   }
 };
+
+
+exports.getUsers = async (req, res) => {
+    try {
+        const users = await User.find({}, 'username role'); // Only return username and role
+        res.status(200).json({
+            status: true,
+            data: users
+        });
+    } catch (err) {
+        console.error("Error fetching users:", err);
+        res.status(500).json({
+            status: false,
+            error: "Server error fetching users"
+        });
+    }
+}
+
+// DELETE /api/auth/delete/:id
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedUser = await User.findByIdAndDelete(id);
+
+    if (!deletedUser) {
+      return res.status(404).json({ status: false, error: 'User not found' });
+    }
+
+    res.status(200).json({
+      status: true,
+      message: 'User deleted successfully',
+      user: deletedUser,
+    });
+  } catch (err) {
+    console.error('Delete user error:', err);
+    res.status(500).json({ status: false, error: 'Server error during deletion' });
+  }
+};
+// PUT /api/auth/update/:id
+
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { username, role, password } = req.body;
+
+    const updates = {};
+
+    if (username) updates.username = username;
+    if (role) updates.role = role;
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updates.password = hashedPassword;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ status: false, error: 'User not found' });
+    }
+
+    res.status(200).json({
+      status: true,
+      message: 'User updated successfully',
+      user: {
+        _id: updatedUser._id,
+        username: updatedUser.username, // no hashing needed here
+        role: updatedUser.role,
+      },
+    });
+  } catch (err) {
+    console.error('Update user error:', err);
+    res.status(500).json({ status: false, error: 'Server error during update' });
+  }
+};

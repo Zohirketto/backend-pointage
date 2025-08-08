@@ -4,8 +4,8 @@ const authController = require("../controllers/authController")
 const path = require('path');
 
 
-router.get("/",authController.isloggedin)
 
+    // handle login
 router.post("/login", authController.login)
     // handle logout
 router.post("/logout", authController.logout)
@@ -13,10 +13,17 @@ router.post("/logout", authController.logout)
     // loggedin
 
 router.get("/loggedin",authController.isloggedin)
+     // signup
+router.post('/signup', authController.signup);
+router.get('/getUsers', authController.getUsers); 
 
-router.post('/signup',authController.securedAdmin, authController.signup);
+// delete
+router.delete('/delete/:id', authController.deleteUser);
+// update
+router.put('/update/:id', authController.updateUser);
 
-    // signup
+
+
 
 
 module.exports = router;

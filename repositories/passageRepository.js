@@ -108,18 +108,13 @@ exports.countCars = async (filters) => {
         // Existing carType filter logic (if it targets specific car types or "Sans Voiture")
         if (carType) {
             if (carType === 'Sans Voiture') {
-                // This means 'carType' doesn't exist or is null, which is different from ""
-                matchStage.carType = { $exists: false }; // Or { $in: [null, undefined] } depending on how carType is stored when absent
-                // If you explicitly want to count entries where carType is null/undefined AND not an empty string
-                // you might need a more complex $or condition:
-                // matchStage.$or = [{ carType: { $exists: false } }, { carType: null }];
-                // For now, let's assume $exists: false correctly captures "Sans Voiture"
+                
+                matchStage.carType = { $exists: false }; 
             } else {
                 matchStage.carType = carType;
             }
         } else {
-            // If no specific carType filter is applied, we still want to exclude empty strings
-            // The { $ne: "" } condition already handles this, so no extra logic needed here
+           
         }
 
         const pipeline = [
@@ -127,8 +122,6 @@ exports.countCars = async (filters) => {
             {
                 $project: {
                     hour: { $hour: "$date" },
-                    // Ensure carType is either its value or "Sans Voiture" if it doesn't exist/is null
-                    // This stage comes AFTER filtering out empty strings, so "" won't become "Sans Voiture" here.
                     carType: {
                         $ifNull: ["$carType", "Sans Voiture"]
                     }
@@ -162,22 +155,17 @@ exports.countCars = async (filters) => {
     }
 };
 
-
-// Assuming this is in your Passage controller, e.g., 'controllers/passageController.js'
 exports.countPerDayAndHour = async (filters) => {
     try {
-        const { startDate, endDate, startTime, endTime, carType } = filters; // Get filters from argument
+        const { startDate, endDate, startTime, endTime, carType } = filters; 
 
-        const matchStage = {}; // Initialize the match stage
-
-        // Calculate current date
+        const matchStage = {};
         const today = new Date();
         const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+        const month = String(today.getMonth() + 1).padStart(2, '0'); 
         const day = String(today.getDate()).padStart(2, '0');
         const currentDayFormatted = `${year}-${month}-${day}`;
 
-        // If no startDate or endDate is provided, set them to the current day
         let effectiveStartDate = startDate;
         let effectiveEndDate = endDate;
 
@@ -189,7 +177,7 @@ exports.countPerDayAndHour = async (filters) => {
         if (effectiveStartDate && effectiveEndDate) {
             matchStage.date = {
                 $gte: new Date(effectiveStartDate),
-                $lte: new Date(effectiveEndDate + 'T23:59:59.999Z') // Include full end day
+                $lte: new Date(effectiveEndDate + 'T23:59:59.999Z') 
             };
         } else if (effectiveStartDate) {
             matchStage.date = {
@@ -203,7 +191,6 @@ exports.countPerDayAndHour = async (filters) => {
             };
         }
 
-        // Apply time filters. $hour extracts the hour (0-23).
         if (startTime !== undefined && endTime !== undefined) {
             const startHour = parseInt(startTime);
             const endHour = parseInt(endTime);
@@ -256,15 +243,12 @@ exports.countPerDayAndHour = async (filters) => {
         );
 
         const result = await Passage.aggregate(pipeline);
-        return result; // Just return the result
+        return result;
     } catch (error) {
-        throw error; // Let the controller handle the error
+        throw error; 
     }
 };
 
-
-
-// Passage Counts (already defined) - MODIFIED TO FILTER BY TODAY
 exports.countAllPassages = async () => {
     const { startOfDay, endOfDay } = getTodayStartAndEnd();
     return Passage.countDocuments({ date: { $gte: startOfDay, $lte: endOfDay } });
@@ -289,12 +273,11 @@ exports.countPassagesWithoutVehicle = async () => {
     });
 };
 
-// New functions to get more granular data from your schema - MODIFIED TO FILTER BY TODAY
 exports.countTotalPersons = async () => {
     const { startOfDay, endOfDay } = getTodayStartAndEnd();
     const result = await Passage.aggregate([
         { $match: { date: { $gte: startOfDay, $lte: endOfDay } } },
-        { $unwind: "$persons" }, // Deconstructs the persons array
+        { $unwind: "$persons" }, 
         { $count: "totalPersons" }
     ]);
     return result.length > 0 ? result[0].totalPersons : 0;
@@ -348,8 +331,8 @@ exports.countQuantityByDestination = async (libelle) => {
         { $match: { "motifInfo.libelle": libelle } },
         {
             $group: {
-                _id: "$_id", // group by Passage document
-                quantite: { $first: "$quantite" } // get quantite only once per document
+                _id: "$_id",
+                quantite: { $first: "$quantite" } 
             }
         },
         {
@@ -362,14 +345,12 @@ exports.countQuantityByDestination = async (libelle) => {
 
     return result.length > 0 ? result[0].total : 0;
 };
-
-// New function to count "Joueur non membre" by destination
 exports.countNonMemberPlayersByDestination = async (libelle) => {
     const { startOfDay, endOfDay } = getTodayStartAndEnd();
     const result = await Passage.aggregate([
         { $match: { date: { $gte: startOfDay, $lte: endOfDay } } },
         { $unwind: "$persons" },
-        { $match: { "persons.type": "Joueur non membre" } }, // Filter for "Joueur non membre"
+        { $match: { "persons.type": "Joueur non membre" } }, 
         {
             $lookup: {
                 from: "motifs",
@@ -379,7 +360,7 @@ exports.countNonMemberPlayersByDestination = async (libelle) => {
             }
         },
         { $unwind: "$motifInfo" },
-        { $match: { "motifInfo.libelle": libelle } }, // Filter by destination libelle
+        { $match: { "motifInfo.libelle": libelle } }, 
         { $count: "count" } // Count matching persons
     ]);
     return result.length > 0 ? result[0].count : 0;
